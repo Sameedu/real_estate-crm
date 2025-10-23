@@ -3,7 +3,7 @@ import { Heart, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { supabase, PropertyMatch, Property } from '../lib/supabase';
-import { fetchMatches } from '../lib/n8n';
+import { checkUserForMatches } from '../lib/matches';
 import { PropertyCard } from '../components/PropertyCard';
 
 export const MatchesPage: React.FC = () => {
@@ -11,11 +11,10 @@ export const MatchesPage: React.FC = () => {
   const { addNotification } = useNotification();
   const [matches, setMatches] = useState<(PropertyMatch & { property: Property })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     loadMatches();
-    const interval = setInterval(checkForNewMatches, 24 * 60 * 60 * 1000);
-    return () => clearInterval(interval);
   }, [user]);
 
   const loadMatches = async () => {
@@ -44,11 +43,21 @@ export const MatchesPage: React.FC = () => {
   const checkForNewMatches = async () => {
     if (!user) return;
 
-    const n8nMatches = await fetchMatches(user.id);
+    setChecking(true);
 
-    if (n8nMatches?.matches && n8nMatches.matches.length > 0) {
-      addNotification(`Found ${n8nMatches.matches.length} new property matches!`, 'success');
-      await loadMatches();
+    try {
+      const newMatchCount = await checkUserForMatches(user.id);
+
+      if (newMatchCount > 0) {
+        addNotification(`Found ${newMatchCount} new property matches!`, 'success');
+        await loadMatches();
+      } else {
+        addNotification('No new matches found', 'info');
+      }
+    } catch (error) {
+      addNotification('Failed to check for matches', 'error');
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -75,11 +84,11 @@ export const MatchesPage: React.FC = () => {
           </div>
           <button
             onClick={checkForNewMatches}
-            disabled={loading}
+            disabled={checking || loading}
             className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
+            <RefreshCw className={`h-5 w-5 ${checking ? 'animate-spin' : ''}`} />
+            <span>Check Matches</span>
           </button>
         </div>
 
@@ -93,9 +102,16 @@ export const MatchesPage: React.FC = () => {
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
               No matches yet
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              We'll notify you when we find properties that match your preferences
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Click the button above to check for new property matches
             </p>
+            <button
+              onClick={checkForNewMatches}
+              disabled={checking}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+            >
+              {checking ? 'Checking...' : 'Check for Matches'}
+            </button>
           </div>
         ) : (
           <>
@@ -121,13 +137,11 @@ export const MatchesPage: React.FC = () => {
                     property={match.property}
                     onClick={() => markAsViewed(match.id)}
                   />
-                  {match.match_score > 0 && (
-                    <div className="mt-2 text-center">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Match Score: {Math.round(match.match_score)}%
-                      </span>
-                    </div>
-                  )}
+                  <div className="mt-2 text-center">
+                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                      Match Score: {Math.round(match.match_score)}%
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>

@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNotification } from '../contexts/NotificationContext';
 import { supabase } from '../lib/supabase';
 import { sendToN8N } from '../lib/n8n';
+import { checkUserForMatches } from '../lib/matches';
 
 interface SurveyPageProps {
   onComplete: () => void;
@@ -55,7 +56,14 @@ export const SurveyPage: React.FC<SurveyPageProps> = ({ onComplete }) => {
         },
       });
 
-      addNotification('Preferences saved successfully!', 'success');
+      const matchCount = await checkUserForMatches(user.id);
+
+      if (matchCount > 0) {
+        addNotification(`Preferences saved! Found ${matchCount} matching properties!`, 'success');
+      } else {
+        addNotification('Preferences saved successfully!', 'success');
+      }
+
       onComplete();
     } catch (error) {
       addNotification('Failed to save preferences', 'error');

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Search, Heart, MessageCircle, LayoutDashboard, LogOut, Moon, Sun, Building2 } from 'lucide-react';
+import { Home, Search, Heart, MessageCircle, LayoutDashboard, LogOut, Moon, Sun, Building2, Settings } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -9,7 +9,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ activePage, onNavigate }) => {
-  const { profile, signOut } = useAuth();
+  const { profile, isAdmin, signOut } = useAuth();
   const { isDark, toggleTheme } = useTheme();
 
   const navItems = [
@@ -17,6 +17,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activePage, onNavigate }) => {
     { id: 'matches', label: 'Matches', icon: Heart },
     { id: 'chat', label: 'Chat', icon: MessageCircle },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    ...(isAdmin ? [{ id: 'admin-properties', label: 'Properties', icon: Settings }] : []),
   ];
 
   return (

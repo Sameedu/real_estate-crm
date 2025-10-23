@@ -8,11 +8,12 @@ import { SearchPage } from './pages/SearchPage';
 import { MatchesPage } from './pages/MatchesPage';
 import { ChatPage } from './pages/ChatPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { AdminPropertiesPage } from './pages/AdminPropertiesPage';
 import { Navbar } from './components/Navbar';
 import { NotificationToast } from './components/NotificationToast';
 import { supabase } from './lib/supabase';
 
-type AppPage = 'auth' | 'survey' | 'search' | 'matches' | 'chat' | 'dashboard';
+type AppPage = 'auth' | 'survey' | 'search' | 'matches' | 'chat' | 'dashboard' | 'admin-properties';
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -87,6 +88,7 @@ function AppContent() {
       {currentPage === 'matches' && <MatchesPage />}
       {currentPage === 'chat' && <ChatPage />}
       {currentPage === 'dashboard' && <DashboardPage />}
+      {currentPage === 'admin-properties' && <AdminPropertiesPage />}
       <NotificationToast />
     </>
   );
