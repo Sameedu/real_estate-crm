@@ -50,7 +50,11 @@ export const AuthPage: React.FC<AuthPageProps> = ({ onSuccess }) => {
         const { error } = await signIn(formData.email, formData.password);
 
         if (error) {
-          addNotification(error.message, 'error');
+          if (error.message.includes('Invalid login credentials')) {
+            addNotification('Incorrect email or password. Please try again.', 'error');
+          } else {
+            addNotification(error.message, 'error');
+          }
           setLoading(false);
           return;
         }

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Search as SearchIcon, MessageCircle, TrendingUp, RefreshCw } from 'lucide-react';
+import { Users, Search as SearchIcon, MessageCircle, TrendingUp, RefreshCw, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { fetchDashboardData } from '../lib/n8n';
 import { useNotification } from '../contexts/NotificationContext';
+import { checkDailyMatches } from '../lib/matches';
 
 interface DashboardStats {
   totalUsers: number;
@@ -28,10 +29,24 @@ export const DashboardPage: React.FC = () => {
   });
   const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkingMatches, setCheckingMatches] = useState(false);
 
   useEffect(() => {
     loadDashboard();
   }, []);
+
+  const handleCheckDailyMatches = async () => {
+    setCheckingMatches(true);
+    try {
+      await checkDailyMatches();
+      addNotification('Daily matches checked and notifications sent!', 'success');
+    } catch (error) {
+      console.error('Error checking daily matches:', error);
+      addNotification('Failed to check daily matches', 'error');
+    } finally {
+      setCheckingMatches(false);
+    }
+  };
 
   const loadDashboard = async () => {
     setLoading(true);
@@ -186,6 +201,32 @@ export const DashboardPage: React.FC = () => {
               </div>
             );
           })}
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 mb-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-pink-500 rounded-lg">
+                <Heart className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Daily Match Recommendations
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Run daily match checks for all users and send webhook notifications
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleCheckDailyMatches}
+              disabled={checkingMatches}
+              className="flex items-center space-x-2 px-6 py-3 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`h-5 w-5 ${checkingMatches ? 'animate-spin' : ''}`} />
+              <span>{checkingMatches ? 'Checking...' : 'Run Daily Check'}</span>
+            </button>
+          </div>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6">

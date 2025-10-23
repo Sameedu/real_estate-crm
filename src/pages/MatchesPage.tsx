@@ -49,13 +49,14 @@ export const MatchesPage: React.FC = () => {
       const newMatchCount = await checkUserForMatches(user.id);
 
       if (newMatchCount > 0) {
-        addNotification(`Found ${newMatchCount} new property matches!`, 'success');
+        addNotification(`Found ${newMatchCount} new property matches! Match details sent to webhook.`, 'success');
         await loadMatches();
       } else {
-        addNotification('No new matches found', 'info');
+        addNotification('No new matches found at this time.', 'info');
       }
     } catch (error) {
-      addNotification('Failed to check for matches', 'error');
+      console.error('Match check error:', error);
+      addNotification('Failed to check for matches. Please try again.', 'error');
     } finally {
       setChecking(false);
     }
