@@ -5,6 +5,41 @@ import { useNotification } from '../contexts/NotificationContext';
 import { supabase, ChatMessage } from '../lib/supabase';
 import { sendToN8N } from '../lib/n8n';
 
+const generateFallbackResponse = (message: string): string => {
+  const lowerMessage = message.toLowerCase();
+
+  if (lowerMessage.includes('hello') || lowerMessage.includes('hi') || lowerMessage.includes('hey')) {
+    return "Hello! I'm your property assistant. I can help you find properties, answer questions about locations, pricing, and more. What would you like to know?";
+  }
+
+  if (lowerMessage.includes('price') || lowerMessage.includes('cost') || lowerMessage.includes('budget')) {
+    return "I can help you with pricing information! Properties range from budget-friendly apartments to luxury villas. What's your budget range, and which city are you interested in?";
+  }
+
+  if (lowerMessage.includes('bangalore') || lowerMessage.includes('mumbai') || lowerMessage.includes('delhi') || lowerMessage.includes('hyderabad') || lowerMessage.includes('pune') || lowerMessage.includes('chennai') || lowerMessage.includes('goa')) {
+    const city = lowerMessage.match(/(bangalore|mumbai|delhi|hyderabad|pune|chennai|goa)/i)?.[0];
+    return `Great choice! ${city ? city.charAt(0).toUpperCase() + city.slice(1) : 'That city'} has excellent properties available. Would you like to see apartments, villas, or plots? Also, what's your budget range?`;
+  }
+
+  if (lowerMessage.includes('apartment') || lowerMessage.includes('villa') || lowerMessage.includes('plot')) {
+    return "Excellent! I can show you some great options. To help narrow down the search, could you tell me:\n1. Which city?\n2. Your budget range?\n3. How many bedrooms you need?";
+  }
+
+  if (lowerMessage.includes('bedroom') || lowerMessage.includes('bhk')) {
+    return "Got it! The number of bedrooms is important. We have properties ranging from 1 BHK to 5+ BHK. Would you like me to show you properties in a specific city and price range?";
+  }
+
+  if (lowerMessage.includes('search') || lowerMessage.includes('find') || lowerMessage.includes('show')) {
+    return "I can help you search for properties! To get the best matches, please tell me:\n• Preferred city\n• Budget range\n• Property type (apartment/villa/plot)\n• Number of bedrooms\n\nOr you can use the Search tab to browse all properties!";
+  }
+
+  if (lowerMessage.includes('match') || lowerMessage.includes('recommendation')) {
+    return "To see personalized property matches, make sure you've completed your preference survey! Then check the Matches tab where I'll show you properties that perfectly match your criteria.";
+  }
+
+  return "I'm here to help you find the perfect property! You can ask me about:\n• Available properties in different cities\n• Pricing and budget options\n• Property types (apartments, villas, plots)\n• Specific locations or neighborhoods\n\nWhat would you like to know?";
+};
+
 export const ChatPage: React.FC = () => {
   const { user } = useAuth();
   const { addNotification } = useNotification();
@@ -64,13 +99,28 @@ export const ChatPage: React.FC = () => {
     });
 
     try {
-      const response = await sendToN8N({
-        event: 'chat',
-        user_id: user.id,
-        message: userMessage,
-      });
+      let botReply = "";
 
-      const botReply = response?.reply || "I'm here to help you find the perfect property. Can you tell me more about what you're looking for?";
+      try {
+        const response = await sendToN8N({
+          event: 'chat',
+          user_id: user.id,
+          message: userMessage,
+        });
+
+        botReply = response?.reply || response?.message || response?.response || "";
+
+        if (response?.telegram_message) {
+          addNotification(response.telegram_message, 'info');
+        }
+      } catch (webhookError) {
+        console.error('Webhook error, using fallback response:', webhookError);
+        botReply = generateFallbackResponse(userMessage);
+      }
+
+      if (!botReply) {
+        botReply = generateFallbackResponse(userMessage);
+      }
 
       const botMessage: ChatMessage = {
         id: Math.random().toString(),
@@ -87,11 +137,8 @@ export const ChatPage: React.FC = () => {
         message: botReply,
         is_user: false,
       });
-
-      if (response?.telegram_message) {
-        addNotification(response.telegram_message, 'info');
-      }
     } catch (error) {
+      console.error('Chat error:', error);
       addNotification('Failed to send message', 'error');
     } finally {
       setLoading(false);

@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const MATCH_WEBHOOK_URL = 'http://localhost:5678/webhook/match';
+const MATCH_WEBHOOK_URL = import.meta.env.VITE_N8N_MATCH_WEBHOOK_URL || 'http://localhost:5678/webhook/match';
 
 export interface MatchResult {
   property_id: string;

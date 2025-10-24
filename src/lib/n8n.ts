@@ -1,4 +1,4 @@
-const N8N_WEBHOOK_URL = 'http://localhost:5678/webhook/chat';
+const N8N_WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/chat';
 
 export interface N8NSignupPayload {
   event: 'signup';
@@ -55,13 +55,14 @@ export const sendToN8N = async (payload: N8NPayload): Promise<any> => {
 
     if (!response.ok) {
       console.error('N8N webhook error:', response.statusText);
-      return null;
+      throw new Error(`N8N webhook failed: ${response.statusText}`);
     }
 
-    return await response.json();
+    const data = await response.json();
+    return data;
   } catch (error) {
     console.error('Failed to send to N8N:', error);
-    return null;
+    throw error;
   }
 };
 
