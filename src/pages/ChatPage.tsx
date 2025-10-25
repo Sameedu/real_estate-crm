@@ -108,7 +108,10 @@ export const ChatPage: React.FC = () => {
           message: userMessage,
         });
 
-        botReply = response?.reply || response?.message || response?.response || "";
+        console.log('Webhook response:', response);
+
+        // Try to get response from various possible fields
+        botReply = response?.response || response?.reply || response?.message || "";
 
         if (response?.telegram_message) {
           addNotification(response.telegram_message, 'info');

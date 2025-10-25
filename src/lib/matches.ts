@@ -37,48 +37,72 @@ export interface MatchNotification {
 }
 
 export const findMatchesForUser = async (userId: string): Promise<MatchResult[]> => {
-  const { data, error } = await supabase.rpc('find_matches_for_user', {
-    user_id_param: userId,
-  });
+  try {
+    console.log('Finding matches for user:', userId);
 
-  if (error) {
-    console.error('Error finding matches:', error);
+    const { data, error } = await supabase.rpc('find_matches_for_user', {
+      user_id_param: userId,
+    });
+
+    if (error) {
+      console.error('Error finding matches:', error);
+      throw error;
+    }
+
+    console.log('Found matches:', data?.length || 0);
+    return data || [];
+  } catch (error) {
+    console.error('Exception finding matches:', error);
     return [];
   }
-
-  return data || [];
 };
 
 export const createMatchesForUser = async (userId: string): Promise<number> => {
-  const matches = await findMatchesForUser(userId);
+  try {
+    console.log('Creating matches for user:', userId);
 
-  if (matches.length === 0) {
+    const matches = await findMatchesForUser(userId);
+
+    if (matches.length === 0) {
+      console.log('No matches found for user');
+      return 0;
+    }
+
+    console.log(`Creating ${matches.length} match records`);
+
+    const matchRecords = matches.map((match) => ({
+      user_id: userId,
+      property_id: match.property_id,
+      match_score: match.match_score,
+      match_details: match.match_details,
+      viewed: false,
+    }));
+
+    const { error } = await supabase.from('property_matches').insert(matchRecords);
+
+    if (error) {
+      console.error('Error inserting matches:', error);
+      throw error;
+    }
+
+    console.log('Match records created successfully');
+
+    // Update last match check
+    await supabase
+      .from('user_preferences')
+      .update({ last_match_check: new Date().toISOString() })
+      .eq('user_id', userId);
+
+    // Send notification webhook (non-blocking, failures don't affect functionality)
+    sendMatchNotification(userId, matchRecords).catch(err => {
+      console.log('Webhook notification failed (non-critical):', err);
+    });
+
+    return matches.length;
+  } catch (error) {
+    console.error('Exception creating matches:', error);
     return 0;
   }
-
-  const matchRecords = matches.map((match) => ({
-    user_id: userId,
-    property_id: match.property_id,
-    match_score: match.match_score,
-    match_details: match.match_details,
-    viewed: false,
-  }));
-
-  const { error } = await supabase.from('property_matches').insert(matchRecords);
-
-  if (error) {
-    console.error('Error creating matches:', error);
-    return 0;
-  }
-
-  await supabase
-    .from('user_preferences')
-    .update({ last_match_check: new Date().toISOString() })
-    .eq('user_id', userId);
-
-  await sendMatchNotification(userId, matchRecords);
-
-  return matches.length;
 };
 
 export const sendMatchNotification = async (
