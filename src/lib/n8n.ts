@@ -45,7 +45,7 @@ export type N8NPayload = N8NSignupPayload | N8NSurveyPayload | N8NSearchPayload 
 
 export const sendToN8N = async (payload: N8NPayload): Promise<any> => {
   try {
-    const response = await fetch(N8N_WEBHOOK_URL, {
+    const response = await fetch("http://localhost:5678/webhook/chat", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -68,7 +68,7 @@ export const sendToN8N = async (payload: N8NPayload): Promise<any> => {
 
 export const fetchMatches = async (userId: string): Promise<any> => {
   try {
-    const response = await fetch(`${N8N_WEBHOOK_URL}?user_id=${userId}&type=matches`);
+    const response = await fetch(`http://localhost:5678/webhook/match?user_id=${userId}&type=matches`);
 
     if (!response.ok) {
       console.error('N8N matches fetch error:', response.statusText);
